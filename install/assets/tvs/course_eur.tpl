@@ -1,7 +1,7 @@
 /**
  * course_eur
  *
- * курс валют эвро
+ * курс валют эвро  
  *
  * @category        Shop
  * @name            price
