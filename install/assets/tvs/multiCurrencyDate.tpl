@@ -1,11 +1,11 @@
 /**
- * course_eur
+ * multiCurrencyDate
  *
- * курс валют эвро
+ * курс валют доллар
  *
  * @category        multiCurrency
- * @name            course_eur
- * @internal        @caption курс валют эвро
+ * @name            multiCurrencyDate
+ * @internal        @caption Дата проверки
  * @internal        @input_type text
  * @internal        @input_options
  * @internal        @input_default
