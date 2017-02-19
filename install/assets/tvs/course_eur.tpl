@@ -1,11 +1,11 @@
 /**
-* course_eur
+* price
 *
-* course_eur
+* Price
 *
-* @category        multiCurrency
-* @name            course_eur
-* @internal        @caption Курс эвро
+* @category        Shop
+* @name            price
+* @internal        @caption Price
 * @internal        @input_type text
 * @internal        @input_options
 * @internal        @input_default
@@ -13,6 +13,6 @@
 * @internal        @output_widget_params
 * @internal        @lock_tv 1
 * @internal        @template_assignments
-* @internal        @modx_category multiCurrency
+* @internal        @modx_category Shop
 * @internal        @installset sample
 */
