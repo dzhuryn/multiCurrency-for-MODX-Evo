@@ -1,57 +1,155 @@
 <?php
-include_once(MODX_BASE_PATH . 'assets/lib/MODxAPI/modResource.php');
 
 if (empty($mainCurrency) || empty($currencies) || empty($docId)|| empty($prefix)) {
     return '';
 }
-$mainCurrency = isset($mainCurrency) ? $mainCurrency : '';
+
+$settings = array(
+    'usd'=>array('name'=>'USD','sign'=>'$'),
+    'eur'=>array('name'=>'EUR','sign'=>'€'),
+    'rub'=>array('name'=>'RUB','sign'=>'&#8381;'),
+    'gbp'=>array('name'=>'GBP','sign'=>'£'),
+);
+
+$mainCurrency = isset($mainCurrency) ? strtolower($mainCurrency) : '';
 $currencies = isset($currencies) ? $currencies : '';
 $docId = isset($docId) ? $docId : '';
 $prefix = isset($prefix) ? $prefix : '';
 
+$formatted = isset($formatted)?$formatted:0;
+$active = isset($_SESSION['currency'])?$_SESSION['currency']:strtolower($mainCurrency);
+$currencyArray = explode(',',$currencies);
 
-$date = $modx->runSnippet('DocInfo', array('docid' => $docId, 'field' => 'multiCurrencyDate'));
-$thisDate = date('d-m-Y');
-if ($date == $thisDate) {
-    return '';
-}
-
-$currencyArray = explode(',', $currencies);
-$searchString = [];
-if (is_array($currencyArray)) {
-    foreach ($currencyArray as $item) {
-        $searchString[] = $item . $mainCurrency;
+if(!function_exists('price_formatted')){
+    function price_formatted($price,$currency){
+        global $settings;
+        return $settings[$currency]['sign'].''.number_format(round($price), 0, ',', ' ');
     }
 }
-$searchString = implode(',', $searchString);
-$url = 'https://query.yahooapis.com/v1/public/yql?q=select+*+from+yahoo.finance.xchange+where+pair+=+%22' . $searchString . '%22&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&callback=';
+$type = isset($type)?$type:'list';
+switch ($type){
+    case 'currentCurrency':
+        $toPlaceholder = isset($toPlaceholder)?$toPlaceholder:0;
+        $active = isset($_SESSION['currency'])?$_SESSION['currency']:strtolower($mainCurrency);
+        $tpl = isset($rowTpl)?$rowTpl:'[+sign+]';
+        $setting=$settings[$active];
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-curl_setopt($ch, CURLOPT_URL, $url);
-$data = curl_exec($ch);
+        $item = str_replace(array(
+            '[+name+]','[+sign+]'
+        ),array(
+            $setting['name'],$setting['sign']
+        ),$tpl);
+        if($toPlaceholder){
+            $modx->setPlaceholder('currentCurrency',$item);
+        }
+        else{
 
-$data = json_decode($data, true);
-$values = array();
-if (is_array($data['query']['results']['rate'])) {
-    foreach ($data['query']['results']['rate'] as $result) {
-        $rate = $result['Rate'];
-        $name = strtolower(explode('/',$result['Name'])[0]);
-        $values[$name]=$rate;
-    }
+            echo $item;
+        }
+
+        break;
+    case 'list':
+
+        if(empty($GLOBALS['currency'])){
+            $modx->regClientScript('/assets/snippets/multiCurrency/multiCurrency.js');
+            $GLOBALS['currency']=1;
+        }
+        $active = isset($_SESSION['currency'])?$_SESSION['currency']:strtolower($mainCurrency);
+        $toPlaceholder = isset($toPlaceholder)?$toPlaceholder:0;
+        $rowClass = isset($rowClass)?$rowClass:'item';
+        $activeClass = isset($activeClass)?$activeClass:'active';
+        $wrapper = isset($wrapper)?$wrapper:'<ul>[+wrapper+]</ul>';
+        $rowTpl = isset($rowTpl)?$rowTpl:'<li[+class+] [+currencyKey+]>[+name+]</li>';
+        $itemStr = '';
+
+        foreach ($currencyArray as $item) {
+            $el = strtolower($item);
+            $classes = ['set-currency'];
+            if(!empty($rowClass))$classes[]=$rowClass;
+            if($active==$el){
+                $classes[]=$activeClass;
+            }
+            $class = ' class="'.implode(' ',$classes).'" ';
+
+            $key = 'data-key="'.$el.'"';
+            $itemStr .= str_replace(array(
+                '[+class+]','[+name+]','[+sign+]','[+currencyKey+]'
+            ),array(
+                $class,$settings[$el]['name'],$settings[$el]['sign'],$key
+            ),$rowTpl);
+        }
+        $output = str_replace('[+wrapper+]',$itemStr,$wrapper);
+        if($toPlaceholder){
+            $modx->setPlaceholder('multiCurrency',$output);
+        }
+        else{
+            echo $output;
+        }
+        break;
+    case 'calc':
+
+        if(empty($GLOBALS['course'])){
+            $course = $modx->runSnippet('DocInfo',array('docid'=>$docId,'field'=>'course_'.$active));
+        }
+        else{
+            $course = $GLOBALS['course'];
+        }
+        $price = isset($price)?$price:0;
+        $active = isset($_SESSION['currency'])?$_SESSION['currency']:strtolower($mainCurrency);
+        if($active==$mainCurrency){
+            $newPrice = $price;
+        }
+        else{
+            $newPrice = intval($price)/intval($course);
+        }
+        if($formatted){
+            echo price_formatted($newPrice,$active);
+        }
+        else{
+            echo $newPrice;
+        }
+        break;
+    case 'calcOne':
+        $count = isset($count) ? intval($count) : 1;
+        $price = isset($price) ? intval(str_replace(' ','',$price)) : 0;
+        $multiPrice = $modx->runSnippet('multiCurrency', array(
+            'type' => 'calc',
+            'price' => $price,
+            'formatted' => 0
+        ));
+        if($formatted){
+            echo price_formatted($multiPrice,$active);
+        }
+        else{
+            echo $multiPrice;
+        }
+        break;
+    case 'calcAll':
+        $purchases = $_SESSION['purchases'];
+        $purchases = unserialize($purchases);
+        $allPrice = 0;
+        if (!empty($purchases) && is_array($purchases)) {
+            foreach ($purchases as $purchase) {
+                $price = $purchase[2];
+                $count = $purchase[1];
+
+                $itemPrice = $modx->runSnippet('multiCurrency', array(
+                        'type' => 'calc',
+                        'formatted' => 0,
+                        'price' => $price
+                    )
+                );
+                $itemPrice = str_replace(',', '.', $itemPrice);
+                $itemsPrice = floatval($itemPrice) * $count;
+                $allPrice = $allPrice + $itemsPrice;
+            }
+        }
+
+        if($formatted){
+            echo price_formatted($allPrice,$active);
+        }
+        else{
+            echo $allPrice;
+        }
+        break;
 }
-
-if(!empty($values)){
-    $res = new modResource($modx);
-    $res->edit($docId);
-
-    foreach ($values as $key=> $value){
-        $res->set($prefix.$key, $value);
-    }
-    $res->set('multiCurrencyDate', $thisDate);
-    $res->save(false,false);
-    echo 'Обновлено';
-}
-
-
-die();
