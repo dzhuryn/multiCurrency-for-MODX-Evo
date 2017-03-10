@@ -46,10 +46,8 @@ switch ($type){
 
             echo $item;
         }
-
         break;
     case 'list':
-
         if(empty($GLOBALS['currency'])){
             $modx->regClientScript('/assets/snippets/multiCurrency/multiCurrency.js');
             $GLOBALS['currency']=1;
@@ -61,7 +59,6 @@ switch ($type){
         $wrapper = isset($wrapper)?$wrapper:'<ul>[+wrapper+]</ul>';
         $rowTpl = isset($rowTpl)?$rowTpl:'<li[+class+] [+currencyKey+]>[+name+]</li>';
         $itemStr = '';
-
         foreach ($currencyArray as $item) {
             $el = strtolower($item);
             $classes = ['set-currency'];
@@ -87,7 +84,6 @@ switch ($type){
         }
         break;
     case 'calc':
-
         if(empty($GLOBALS['course'])){
             $course = $modx->runSnippet('DocInfo',array('docid'=>$docId,'field'=>'course_'.$active));
         }
@@ -144,7 +140,6 @@ switch ($type){
                 $allPrice = $allPrice + $itemsPrice;
             }
         }
-
         if($formatted){
             echo price_formatted($allPrice,$active);
         }
