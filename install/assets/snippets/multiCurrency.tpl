@@ -1,6 +1,6 @@
 //<?php
 /**
- * multiCurreny
+ * multiCurrency
  *
  * Сниппет мультивалютности
  *

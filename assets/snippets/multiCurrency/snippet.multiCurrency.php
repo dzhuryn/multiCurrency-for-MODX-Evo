@@ -3,12 +3,13 @@
 if (empty($mainCurrency) || empty($currencies) || empty($docId)|| empty($prefix)) {
     return '';
 }
-
+global $settings;
 $settings = array(
     'usd'=>array('name'=>'USD','sign'=>'$'),
     'eur'=>array('name'=>'EUR','sign'=>'€'),
-    'rub'=>array('name'=>'RUB','sign'=>'&#8381;'),
+    'rub'=>array('name'=>'RUB','sign'=>' р'),
     'gbp'=>array('name'=>'GBP','sign'=>'£'),
+    'uah'=>array('name'=>'UAH','sign'=>'uah '),
 );
 
 $mainCurrency = isset($mainCurrency) ? strtolower($mainCurrency) : '';
@@ -22,11 +23,19 @@ $currencyArray = explode(',',$currencies);
 
 if(!function_exists('price_formatted')){
     function price_formatted($price,$currency){
+
         global $settings;
-        return $settings[$currency]['sign'].''.number_format(round($price), 0, ',', ' ');
+        if($currency=='rub'){
+            return number_format($price, 0, ',', ' ').$settings[$currency]['sign'];
+        }
+        else{
+            return $settings[$currency]['sign'].''.number_format($price, 0, ',', ' ');
+        }
+
     }
 }
 $type = isset($type)?$type:'list';
+
 switch ($type){
     case 'currentCurrency':
         $toPlaceholder = isset($toPlaceholder)?$toPlaceholder:0;
@@ -48,7 +57,8 @@ switch ($type){
         }
         break;
     case 'list':
-        if(empty($GLOBALS['currency'])){
+        $js = isset($js)?$js:1;
+        if(empty($GLOBALS['currency']) && $js==1){
             $modx->regClientScript('/assets/snippets/multiCurrency/multiCurrency.js');
             $GLOBALS['currency']=1;
         }
@@ -90,14 +100,16 @@ switch ($type){
         else{
             $course = $GLOBALS['course'];
         }
+
         $price = isset($price)?$price:0;
         $active = isset($_SESSION['currency'])?$_SESSION['currency']:strtolower($mainCurrency);
         if($active==$mainCurrency){
             $newPrice = $price;
         }
         else{
-            $newPrice = intval($price)/intval($course);
+            $newPrice = intval($price)* $course;
         }
+        $newPrice = round($newPrice);
         if($formatted){
             echo price_formatted($newPrice,$active);
         }
@@ -105,46 +117,5 @@ switch ($type){
             echo $newPrice;
         }
         break;
-    case 'calcOne':
-        $count = isset($count) ? intval($count) : 1;
-        $price = isset($price) ? intval(str_replace(' ','',$price)) : 0;
-        $multiPrice = $modx->runSnippet('multiCurrency', array(
-            'type' => 'calc',
-            'price' => $price,
-            'formatted' => 0
-        ));
-        if($formatted){
-            echo price_formatted($multiPrice,$active);
-        }
-        else{
-            echo $multiPrice;
-        }
-        break;
-    case 'calcAll':
-        $purchases = $_SESSION['purchases'];
-        $purchases = unserialize($purchases);
-        $allPrice = 0;
-        if (!empty($purchases) && is_array($purchases)) {
-            foreach ($purchases as $purchase) {
-                $price = $purchase[2];
-                $count = $purchase[1];
 
-                $itemPrice = $modx->runSnippet('multiCurrency', array(
-                        'type' => 'calc',
-                        'formatted' => 0,
-                        'price' => $price
-                    )
-                );
-                $itemPrice = str_replace(',', '.', $itemPrice);
-                $itemsPrice = floatval($itemPrice) * $count;
-                $allPrice = $allPrice + $itemsPrice;
-            }
-        }
-        if($formatted){
-            echo price_formatted($allPrice,$active);
-        }
-        else{
-            echo $allPrice;
-        }
-        break;
 }
