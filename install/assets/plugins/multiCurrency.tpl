@@ -10,7 +10,7 @@
  * @package     modx
  * @author      dzhuryn
  * @internal    @properties &mainCurrency=Главная валюта;string;RUB &currencies=Валюты;string;USD,EUR,GBP &docId=Ресурс где хранаться tv параметры;string;1 &prefix=Префикс тв параметров;string;course_ &auto=Автообновление курса;string;1 &provider=Провайдер курса;string;yahooapis
- * @internal    @events OnWebPageInit,OnPageNotFound,OnSHKcalcTotalPrice
+ * @internal    @events OnWebPageInit,OnPageNotFound,OnSHKgetProductPrice
  * @internal    @modx_category multiCurreny
  * @internal    @installset base, sample
  */
